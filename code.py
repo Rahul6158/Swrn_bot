@@ -2,7 +2,7 @@ import streamlit as st
 from transformers import pipeline
 
 # Load the question-answering pipeline
-qa_pipeline = pipeline("question-answering", model="Alexander-Learn/bert-finetuned-squad")
+qa_pipeline = pipeline(task = "question-answering", model="Alexander-Learn/bert-finetuned-squad")
 
 # Function to get the answer for a given question
 def get_answer(question, context_file):
