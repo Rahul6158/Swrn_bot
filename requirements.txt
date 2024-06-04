@@ -1,4 +1,8 @@
+langchain
 transformers
+sentence-transformers
+accelerate
+faiss-cpu
 streamlit
-tensorflow
-pytorch
+langchain-together
+einops
