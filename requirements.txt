@@ -1,8 +1,6 @@
-langchain
-transformers
-sentence-transformers
-accelerate
-faiss-cpu
-streamlit
-langchain-together
-einops
+ streamlit
+ translate
+ gtts
+ requests
+ Pillow
+ SpeechRecognition
