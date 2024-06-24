@@ -116,10 +116,7 @@ Image generation
 st.title("NeoChat")
 st.write("\n")
 
-col1, col2 = st.columns([2, 4])
-
-with col1:
-    st.image("sma.png", use_column_width=True)
+col2 = st.columns([2, 4])
 
 with col2:
     st.markdown("""
