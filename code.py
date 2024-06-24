@@ -116,7 +116,10 @@ Image generation
 st.title("NeoChat")
 st.write("\n")
 
-col2 = st.columns([2, 4])
+col1, col2 = st.columns([2, 4])
+
+with col1:
+    st.write("mu")
 
 with col2:
     st.markdown("""
