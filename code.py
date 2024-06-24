@@ -1,115 +1,186 @@
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.prompts import PromptTemplate
-from langchain_together import Together
-import os
-from langchain.memory import ConversationBufferWindowMemory
-from langchain.chains import ConversationalRetrievalChain
 import streamlit as st
-import time
+from translate import Translator
+import google.generativeai as genai
+from gtts import gTTS
+import base64
+import os
+import speech_recognition as sr
+import requests
+from PIL import Image
+import io
 
-st.set_page_config(page_title="MedChat", page_icon="favicon.png")
+API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+HUGGING_FACE_TOKEN = "####"
+GENAI_API_KEY = "####"
 
-col1, col2, col3 = st.columns([1,4,1])
+# Configure the Gemini AI with the provided API key
+genai.configure(api_key=GENAI_API_KEY)
+
+# Initialize the Gemini AI model
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+# Function to query Stable Diffusion API
+def query_stabilitydiff(payload, headers):
+    response = requests.post(API_URL, headers=headers, json=payload)
+    return response.content
+
+# Function to translate text
+def translate_text(text, dest_language):
+    translator = Translator(to_lang=dest_language)
+    translation = translator.translate(text)
+    return translation
+
+# Function to generate a response using Gemini AI
+def generate_gemini_response(prompt):
+    response = model.generate_content(prompt)
+    return response.text
+
+# Function to convert text to speech and generate a download link
+def text_to_speech(text, lang='en'):
+    tts = gTTS(text=text, lang=lang)
+    tts.save("response.mp3")
+
+    # Read the audio file and encode it to base64
+    audio_file = open("response.mp3", "rb")
+    audio_bytes = audio_file.read()
+    audio_b64 = base64.b64encode(audio_bytes).decode()
+    audio_file.close()
+    os.remove("response.mp3")
+
+    return f'<audio controls autoplay><source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3"></audio>'
+
+# Function to recognize speech input
+def recognize_speech():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.info("Listening...")
+        audio = recognizer.listen(source)
+        try:
+            text = recognizer.recognize_google(audio)
+            st.success(f"You said: {text}")
+            return text
+        except sr.UnknownValueError:
+            st.error("Sorry, I did not understand that.")
+        except sr.RequestError:
+            st.error("Sorry, there was an issue with the speech recognition service.")
+        return None
+
+# Map language to ISO 639-1 code
+languages_map = {
+    "English": "en",
+    "Hindi": "hi",
+    "Telugu": "te",
+    "Tamil": "ta",
+    "Bengali": "bn",
+    "Gujarati": "gu",
+    "Kannada": "kn",
+    "Malayalam": "ml",
+    "Marathi": "mr",
+    "Punjabi": "pa",
+    "Odia": "or",
+    "Urdu": "ur",
+    "Chinese": "zh-CN",
+    "Korean": "ko",
+    "Japanese": "ja",
+    "French": "fr",
+    "German": "de",
+    "Spanish": "es",
+    "Italian": "it",
+    "Russian": "ru",
+    "Arabic": "ar",
+    "Dutch": "nl",
+    "Portuguese": "pt",
+    "Turkish": "tr",
+    "Polish": "pl",
+    "Swedish": "sv",
+    "Vietnamese": "vi",
+    "Greek": "el",
+    "Thai": "th",
+    "Indonesian": "id"
+}
+
+# Sidebar for language selection
+selected_language = st.sidebar.selectbox("Select Language", list(languages_map.keys()))
+dest_language = languages_map[selected_language]
+
+# Sidebar details
+st.sidebar.markdown("""
+<div style="font-size: 20px;">NeoChat Features:</div>
+Multilingual support
+Text-based chat
+Speech-to-text interaction
+Text-to-speech response
+Image generation
+""", unsafe_allow_html=True)
+
+st.title("NeoChat")
+st.write("\n")
+
+col1, col2 = st.columns([2, 4])
+
+with col1:
+    st.image("sma.png", use_column_width=True)
+
 with col2:
-    st.image("https://github.com/harshitv804/MedChat/assets/100853494/86b9efcc-32cd-42ae-a2ce-90e5c6c0401e")
+    st.markdown("""
+    Welcome to NeoChat! Here's what you can do: \n
+    1. **Type your messages**: Interact with our chatbot by typing in the chat input box.
+    2. **Speak to chat**: Click the microphone button to speak and let the chatbot respond.
+    3. **Hear the response**: After typing or speaking, click the speaker button to hear the response.
+    4. **Multilingual support**: Communicate in various languages like Telugu, Hindi, and more!
+    5. **Generate images**: Start your prompt with 'I' to generate images related to your prompt.
+    """)
 
-st.markdown(
-    """
-    <style>
-div.stButton > button:first-child {
-    background-color: #ffd0d0;
-}
-div.stButton > button:active {
-    background-color: #ff6262;
-}
-
-   div[data-testid="stStatusWidget"] div button {
-        display: none;
-        }
-    
-    .reportview-container {
-            margin-top: -2em;
-        }
-        #MainMenu {visibility: hidden;}
-        .stDeployButton {display:none;}
-        footer {visibility: hidden;}
-        #stDecoration {display:none;}
-    button[title="View fullscreen"]{
-    visibility: hidden;}
-        </style>
-""",
-    unsafe_allow_html=True,
-)
-
-def reset_conversation():
-  st.session_state.messages = []
-  st.session_state.memory.clear()
+st.write("\n")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "memory" not in st.session_state:
-    st.session_state.memory = ConversationBufferWindowMemory(k=2, memory_key="chat_history",return_messages=True) 
+if "response_text" not in st.session_state:
+    st.session_state.response_text = ""
+    st.session_state.is_image_response = False
 
-embeddings = HuggingFaceEmbeddings(model_name="nomic-ai/nomic-embed-text-v1",model_kwargs={"trust_remote_code":True, "revision":"289f532e14dbbbd5a04753fa58739e9ba766f3c7"})
-db = FAISS.load_local("medchat_db", embeddings)
-db_retriever = db.as_retriever(search_type="similarity",search_kwargs={"k": 4})
-
-prompt_template = """<s>[INST]Follow these instructions carefully: You are a medical practitioner chatbot providing accurate medical information, adopting a doctor's perspective in your responses. Utilize the provided context, chat history, and question, choosing only the necessary information based on the user's query. Avoid generating your own questions and answers. Do not reference chat history if irrelevant to the current question; only use it for similar-related queries. Prioritize the given context when searching for relevant information, emphasizing clarity and conciseness in your responses. If multiple medicines share the same name but have different strengths, ensure to mention them. Exclude any mention of medicine costs. Stick to context directly related to the user's question, and use your knowledge base to answer inquiries outside the given context. Abstract and concise responses are key; do not repeat the chat template in your answers. If you lack information, simply state that you don't know.
-
-CONTEXT: {context}
-
-CHAT HISTORY: {chat_history}
-
-QUESTION: {question}
-
-ANSWER:
-</s>[INST]
-"""
-
-prompt = PromptTemplate(template=prompt_template,
-                        input_variables=['context', 'question', 'chat_history'])
-
-TOGETHER_AI_API= os.environ['TOGETHER_AI']
-llm = Together(
-    model="mistralai/Mistral-7B-Instruct-v0.2",
-    temperature=0.7,
-    max_tokens=512,
-    together_api_key=f"{TOGETHER_AI_API}"
-)
-
-qa = ConversationalRetrievalChain.from_llm(
-    llm=llm,
-    memory=st.session_state.memory,
-    retriever=db_retriever,
-    combine_docs_chain_kwargs={'prompt': prompt}
-)
-
+# Display existing chat messages
 for message in st.session_state.messages:
-    with st.chat_message(message.get("role")):
-        st.write(message.get("content"))
+    if message["role"] == "user":
+        st.chat_message(message["content"])
+    elif message["role"] == "assistant":
+        if "image" in message:
+            st.image(message["image"], caption=message["content"], use_column_width=True)
+        else:
+            st.markdown(message["content"])
 
-input_prompt = st.chat_input("Say something")
+# Handle new user input
+prompt = st.text_input("What's on your mind?")
+if st.button("Speak"):
+    prompt = recognize_speech()
 
-if input_prompt:
-    with st.chat_message("user"):
-        st.write(input_prompt)
+if prompt:
+    st.session_state.messages.append({"role": "user", "content": prompt})
 
-    st.session_state.messages.append({"role":"user","content":input_prompt})
+    if prompt.startswith('I') or prompt.startswith('generate'):
+        # Query Stable Diffusion
+        headers = {"Authorization": f"Bearer {HUGGING_FACE_TOKEN}"}
+        image_bytes = query_stabilitydiff({"inputs": prompt}, headers)
+        image = Image.open(io.BytesIO(image_bytes))
 
-    with st.chat_message("assistant"):
-        with st.status("Thinking 💡...",expanded=True):
-            result = qa.invoke(input=input_prompt)
+        # Show Result
+        msg = f'Here is your image related to "{prompt}"'
+        st.session_state.messages.append({"role": "assistant", "content": msg, "image": image})
+        st.chat_message("assistant").image(image, caption=prompt, use_column_width=True)
+    else:
+        st.session_state.response_text = generate_gemini_response(prompt)
+        # Translate the response
+        if dest_language != 'en':
+            translated_response = translate_text(st.session_state.response_text[:400], dest_language)
+        else:
+            translated_response = st.session_state.response_text
+        st.markdown(translated_response)
+        st.session_state.messages.append({"role": "assistant", "content": translated_response})
 
-            message_placeholder = st.empty()
+        st.session_state.is_image_response = False
 
-            full_response = "⚠️ **_Note: Information provided may be inaccurate. Consult a qualified doctor for accurate advice._** \n\n\n"
-        for chunk in result["answer"]:
-            full_response+=chunk
-            time.sleep(0.02)
-            
-            message_placeholder.markdown(full_response+" ▌")
-        st.button('Reset All Chat 🗑️', on_click=reset_conversation)
-
-    st.session_state.messages.append({"role":"assistant","content":result["answer"]})
+    # Add a "Hear response" button to play the response
+    if st.session_state.response_text and not st.session_state.is_image_response:
+        if st.button("Hear response"):
+            st.markdown(text_to_speech(translated_response), unsafe_allow_html=True)
