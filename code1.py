@@ -8,7 +8,7 @@ headers = {"Authorization": "Bearer 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"}
 # Function to query the GPT-2 large model
 def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
-    return response.json()
+    return response
 
 # Streamlit configuration
 st.set_page_config(page_title="GPT-2 Large Demo",
@@ -27,14 +27,20 @@ submit = st.button("Ask")
 # Handle submission
 if submit and input_text:
     # Query the GPT-2 model
-    output = query({
+    response = query({
         "inputs": input_text
     })
     
-    # Display the response
-    if 'error' in output:
-        st.error("Failed to get a response. Please try again later.")
-    elif 'generated_text' in output:
-        st.write(output['generated_text'])
+    # Check response status
+    if response.status_code == 200:
+        output = response.json()
+        
+        # Display the response
+        if 'error' in output:
+            st.error(f"Model returned an error: {output['error']}")
+        elif 'generated_text' in output:
+            st.write(output['generated_text'])
+        else:
+            st.error("Unexpected response format: Missing 'generated_text' key.")
     else:
-        st.error("Unexpected response format from the model.")
+        st.error(f"Failed to query model. Status code: {response.status_code}")
