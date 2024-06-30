@@ -1,8 +1,19 @@
 import streamlit as st
+import requests
+from langchain.prompts import PromptTemplate
 from transformers import pipeline
 
-# Initialize the pipeline with Gemma-2-9B model for text generation
-pipe = pipeline("text-generation", model="google/gemma-2-9b")
+# Function to get response from Gemma-2-27B model via Hugging Face API
+def getGemmaResponse(prompt_text):
+    API_URL = "https://api-inference.huggingface.co/models/google/gemma-2-27b-it"
+    headers = {"Authorization": "Bearer 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"}
+    
+    payload = {"inputs": prompt_text}
+    response = requests.post(API_URL, headers=headers, json=payload)
+    if response.status_code == 200:
+        return response.json()["generated_text"]
+    else:
+        return f"Error: {response.status_code} - {response.reason}"
 
 # Streamlit configuration
 st.set_page_config(page_title="Generate Text",
@@ -13,7 +24,7 @@ st.set_page_config(page_title="Generate Text",
 st.header("Generate Text 🤖")
 
 # Input field for user prompt
-input_text = st.text_input("Enter the text prompt")
+input_text = st.text_input("Enter the Text Prompt")
 
 # Submit button
 submit = st.button("Generate")
@@ -21,10 +32,9 @@ submit = st.button("Generate")
 # Handle submission
 if submit:
     if input_text:
-        # Generate text using the Gemma-2-9B model
-        response = pipe(input_text, max_length=50, num_return_sequences=1)
-        generated_text = response[0]['generated_text']
+        # Generate text using Gemma-2-27B model
+        response = getGemmaResponse(input_text)
         st.write("Generated Text:")
-        st.write(generated_text)
+        st.write(response)
     else:
         st.warning("Please enter a text prompt.")
