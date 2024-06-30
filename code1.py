@@ -1,46 +1,31 @@
 import streamlit as st
 import requests
 
-# Hugging Face API endpoint and token
 API_URL = "https://api-inference.huggingface.co/models/distilbert/distilgpt2"
 headers = {"Authorization": "Bearer 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"}
 
-# Function to query the GPT-2 large model
 def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
-    return response
+    return response.json()["generated_text"]
 
 # Streamlit configuration
-st.set_page_config(page_title="GPT-2 Large Demo",
+st.set_page_config(page_title="Generate Blogs",
                    page_icon='🤖',
                    layout='centered',
                    initial_sidebar_state='collapsed')
 
-st.header("GPT-2 Large Model Demo 🤖")
+st.header("Generate Blogs 🤖")
 
-# Input field
-input_text = st.text_input("Enter your query")
+# Input fields
+input_text = st.text_input("Enter the Blog Topic")
 
 # Submit button
-submit = st.button("Ask")
+submit = st.button("Generate")
 
 # Handle submission
-if submit and input_text:
-    # Query the GPT-2 model
-    response = query({
+if submit:
+    payload = {
         "inputs": input_text
-    })
-    
-    # Check response status
-    if response.status_code == 200:
-        output = response.json()
-        
-        # Display the response
-        if 'error' in output:
-            st.error(f"Model returned an error: {output['error']}")
-        elif 'generated_text' in output:
-            st.write(output['generated_text'])
-        else:
-            st.error("Unexpected response format: Missing 'generated_text' key.")
-    else:
-        st.error(f"Failed to query model. Status code: {response.status_code}")
+    }
+    response = query(payload)
+    st.write(response)
