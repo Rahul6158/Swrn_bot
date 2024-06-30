@@ -24,17 +24,26 @@ st.set_page_config(page_title="Generate Text",
 
 st.header("Generate Text 🤖")
 
+# Define a prompt template
+template = """
+    Generate text based on the input prompt:
+    {prompt_text}
+"""
+
 # Input field for user prompt
-input_text = st.text_input("Enter the Text Prompt")
+input_text = st.text_area("Enter the Text Prompt", height=150)
 
 # Submit button
 submit = st.button("Generate")
 
 # Handle submission
 if submit:
-    if input_text:
+    if input_text.strip():  # Check if input is not empty
+        # Use the prompt template to format the input
+        prompt = template.format(prompt_text=input_text)
+        
         # Generate text using Gemma-2-27B model
-        response = getGemmaResponse(input_text)
+        response = getGemmaResponse(prompt)
         if response:
             st.write("Generated Text:")
             st.write(response)
