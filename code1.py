@@ -1,43 +1,30 @@
 import streamlit as st
-import requests
+from transformers import pipeline
 
-API_URL = "https://api-inference.huggingface.co/models/distilbert/distilgpt2"
-headers = {"Authorization": "Bearer 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"}
-
-def query(payload):
-    try:
-        response = requests.post(API_URL, headers=headers, json=payload)
-        response.raise_for_status()  # Raise an error for bad status codes
-        data = response.json()
-        st.write("Response:", data)  # Log the full response for debugging
-        if "generated_text" in data:
-            return data["generated_text"]
-        else:
-            st.error("Unexpected response format from the API.")
-            return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching response: {str(e)}")
-        return None
+# Initialize the pipeline with Gemma-2-9B model for text generation
+pipe = pipeline("text-generation", model="google/gemma-2-9b")
 
 # Streamlit configuration
-st.set_page_config(page_title="Generate Blogs",
+st.set_page_config(page_title="Generate Text",
                    page_icon='🤖',
                    layout='centered',
                    initial_sidebar_state='collapsed')
 
-st.header("Generate Blogs 🤖")
+st.header("Generate Text 🤖")
 
-# Input fields
-input_text = st.text_input("Enter the Blog Topic")
+# Input field for user prompt
+input_text = st.text_input("Enter the text prompt")
 
 # Submit button
 submit = st.button("Generate")
 
 # Handle submission
 if submit:
-    payload = {
-        "inputs": input_text
-    }
-    response = query(payload)
-    if response is not None:
-        st.write(response)
+    if input_text:
+        # Generate text using the Gemma-2-9B model
+        response = pipe(input_text, max_length=50, num_return_sequences=1)
+        generated_text = response[0]['generated_text']
+        st.write("Generated Text:")
+        st.write(generated_text)
+    else:
+        st.warning("Please enter a text prompt.")
