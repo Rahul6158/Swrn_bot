@@ -6,7 +6,7 @@ API_URL = "https://api-inference.huggingface.co/models/openai-community/gpt2-lar
 headers = {"Authorization": "Bearer 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"}
 
 def query(payload):
-    response = requests.post(API_URL, headers=HEADERS, json=payload)
+    response = requests.post(API_URL, headers=headers, json=payload)
     return response.json()
 
 # Streamlit configuration
