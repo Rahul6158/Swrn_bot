@@ -13,7 +13,7 @@ def getLLamaresponse(input_text, no_words, blog_style):
     
     # Prompt template
     template = """
-        Write a blog for {blog_style} job profile for a topic {input_text}
+        Write a blog for {blog_style} for a topic {input_text}
         within {no_words} words.
     """
     
