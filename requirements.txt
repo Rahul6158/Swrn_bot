@@ -5,3 +5,9 @@
  Pillow
  SpeechRecognition
 google-Generativeai
+sentence-transformers
+uvicorn
+ctransformers
+langchain
+python-box
+streamlit
