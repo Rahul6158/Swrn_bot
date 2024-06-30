@@ -5,8 +5,18 @@ API_URL = "https://api-inference.huggingface.co/models/distilbert/distilgpt2"
 headers = {"Authorization": "Bearer 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"}
 
 def query(payload):
-    response = requests.post(API_URL, headers=headers, json=payload)
-    return response.json()["generated_text"]
+    try:
+        response = requests.post(API_URL, headers=headers, json=payload)
+        response.raise_for_status()  # Raise an error for bad status codes
+        data = response.json()
+        if "generated_text" in data:
+            return data["generated_text"]
+        else:
+            st.error("Unexpected response format from the API.")
+            return None
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching response: {str(e)}")
+        return None
 
 # Streamlit configuration
 st.set_page_config(page_title="Generate Blogs",
@@ -28,4 +38,5 @@ if submit:
         "inputs": input_text
     }
     response = query(payload)
-    st.write(response)
+    if response is not None:
+        st.write(response)
