@@ -34,5 +34,7 @@ if submit and input_text:
     # Display the response
     if 'error' in output:
         st.error("Failed to get a response. Please try again later.")
-    else:
+    elif 'generated_text' in output:
         st.write(output['generated_text'])
+    else:
+        st.error("Unexpected response format from the model.")
