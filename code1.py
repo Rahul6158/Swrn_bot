@@ -33,6 +33,6 @@ submit = st.button("Generate")
 
 # Handle submission
 if submit:
-    prompt = f"Write a blog for {blog_style} job profile for a topic {input_text} within {no_words} words."
+    prompt = f"Write a blog for {blog_style} for a topic {input_text} within {no_words} words."
     response = query_openai_gpt2({"inputs": prompt})
-    st.write(response["generated_text"])
+    st.write(response)  # Print the entire response object for inspection
