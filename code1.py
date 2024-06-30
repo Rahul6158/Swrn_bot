@@ -9,6 +9,7 @@ def query(payload):
         response = requests.post(API_URL, headers=headers, json=payload)
         response.raise_for_status()  # Raise an error for bad status codes
         data = response.json()
+        st.write("Response:", data)  # Log the full response for debugging
         if "generated_text" in data:
             return data["generated_text"]
         else:
