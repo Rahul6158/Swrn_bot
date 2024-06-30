@@ -11,3 +11,4 @@ ctransformers
 langchain
 python-box
 streamlit
+langchain_community
