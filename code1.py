@@ -1,10 +1,9 @@
 import streamlit as st
 import requests
 
-API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-2-7b-hf"
-HEADERS = {
-    "Authorization": "Bearer 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"
-}
+# Hugging Face API endpoint and token
+API_URL = "https://api-inference.huggingface.co/models/openai-community/gpt2-large"
+headers = {"Authorization": "Bearer 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"}
 
 def query(payload):
     response = requests.post(API_URL, headers=HEADERS, json=payload)
