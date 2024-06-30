@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Hugging Face API endpoint and token
-API_URL = "https://api-inference.huggingface.co/models/openai-community/gpt2-large"
+API_URL = "https://api-inference.huggingface.co/models/distilbert/distilgpt2"
 headers = {"Authorization": "Bearer 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"}
 
 # Function to query the GPT-2 large model
