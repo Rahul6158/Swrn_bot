@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from pytube import YouTube
 import os
+import time
 
 # Function to download audio from YouTube video
 def download_audio_from_youtube(video_url, output_path="audio.mp4"):
@@ -14,11 +15,24 @@ def download_audio_from_youtube(video_url, output_path="audio.mp4"):
 def transcribe_audio(file):
     API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v3"
     headers = {"Authorization": "Bearer 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"}
-
+    
     with open(file, "rb") as f:
         data = f.read()
-    response = requests.post(API_URL, headers=headers, data=data)
-    return response.json()
+    
+    for _ in range(10):  # Retry up to 10 times
+        response = requests.post(API_URL, headers=headers, data=data)
+        result = response.json()
+        
+        if 'error' not in result:
+            return result
+        elif 'estimated_time' in result:
+            st.write(f"Model is loading, estimated time: {result['estimated_time']} seconds")
+            time.sleep(result['estimated_time'])  # Wait for the estimated time
+        else:
+            st.write("Unexpected error occurred:", result)
+            return result
+    
+    return {"error": "Failed to load model after multiple attempts"}
 
 # Streamlit configuration
 st.set_page_config(page_title="YouTube Video Transcription",
