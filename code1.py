@@ -1,51 +1,56 @@
 import streamlit as st
 import requests
+from pytube import YouTube
+import os
 
-# Function to get response from Gemma-2-27B model via Hugging Face API
-def getGemmaResponse(prompt_text):
-    API_URL = "https://api-inference.huggingface.co/models/google/gemma-2-27b-it"
+# Function to download audio from YouTube video
+def download_audio_from_youtube(video_url, output_path="audio.mp4"):
+    yt = YouTube(video_url)
+    audio_stream = yt.streams.filter(only_audio=True).first()
+    audio_stream.download(filename=output_path)
+    return output_path
+
+# Function to transcribe audio using Whisper model
+def transcribe_audio(file):
+    API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v3"
     headers = {"Authorization": "Bearer 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"}
 
-    payload = {"inputs": prompt_text}
-
-    try:
-        response = requests.post(API_URL, headers=headers, json=payload)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        return response.json()["generated_text"]
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error: {str(e)}")
-        return None
+    with open(file, "rb") as f:
+        data = f.read()
+    response = requests.post(API_URL, headers=headers, data=data)
+    return response.json()
 
 # Streamlit configuration
-st.set_page_config(page_title="Generate Text",
-                   page_icon='🤖',
+st.set_page_config(page_title="YouTube Video Transcription",
+                   page_icon='🎥',
                    layout='centered',
                    initial_sidebar_state='collapsed')
 
-st.header("Generate Text 🤖")
+st.header("YouTube Video Transcription 🎥")
 
-# Define a prompt template
-template = """
-    Generate text based on the input prompt:
-    {prompt_text}
-"""
-
-# Input field for user prompt
-input_text = st.text_area("Enter the Text Prompt", height=150)
+# Input field for YouTube URL
+video_url = st.text_input("Enter the YouTube Video URL")
 
 # Submit button
-submit = st.button("Generate")
-
-# Handle submission
-if submit:
-    if input_text.strip():  # Check if input is not empty
-        # Use the prompt template to format the input
-        prompt = template.format(prompt_text=input_text)
-        
-        # Generate text using Gemma-2-27B model
-        response = getGemmaResponse(prompt)
-        if response:
-            st.write("Generated Text:")
-            st.write(response)
+if st.button("Transcribe"):
+    if video_url:
+        try:
+            st.write("Downloading audio...")
+            audio_file = download_audio_from_youtube(video_url)
+            
+            st.write("Transcribing audio...")
+            transcription_result = transcribe_audio(audio_file)
+            
+            if 'text' in transcription_result:
+                st.write("Transcription:")
+                st.write(transcription_result['text'])
+            else:
+                st.write("Error in transcription:")
+                st.write(transcription_result)
+            
+            # Cleanup the downloaded audio file
+            os.remove(audio_file)
+        except Exception as e:
+            st.write(f"An error occurred: {e}")
     else:
-        st.warning("Please enter a text prompt.")
+        st.write("Please enter a valid YouTube URL")
