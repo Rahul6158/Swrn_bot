@@ -3,7 +3,7 @@ import requests
 
 # Define the API endpoint and headers
 API_URL = "https://api-inference.huggingface.co/models/bartowski/gemma-2-27b-it-GGUF"
-headers = {"Authorization": "Bearer hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+headers = {"Authorization": "Bearer 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"}
 
 # Function to query the model
 def query(payload):
