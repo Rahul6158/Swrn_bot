@@ -62,8 +62,13 @@ if st.button("Transcribe"):
                 st.write("Error in transcription:")
                 st.write(transcription_result)
             
-            # Cleanup the downloaded audio file
-            os.remove(audio_file)
+            # Provide download link for the audio file
+            st.write("Download the audio file:")
+            with open(audio_file, "rb") as file:
+                btn = st.download_button(label="Download audio file", 
+                                         data=file, 
+                                         file_name="transcribed_audio.mp4", 
+                                         mime="audio/mp4")
         except Exception as e:
             st.write(f"An error occurred: {e}")
     else:
