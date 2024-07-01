@@ -22,14 +22,12 @@ input_text = st.text_input("Enter your prompt here")
 # Submit button
 if st.button("Generate Text"):
     if input_text:
-        with st.spinner("Model is loading..."):
-            # Check if model is loading
+        with st.spinner("Generating text, please wait..."):
             while True:
                 output = query({"inputs": input_text})
-                
+
                 if 'error' in output and "loading" in output['error']:
                     estimated_time = output.get("estimated_time", 20)
-                    st.write(f"Model is loading. Estimated time: {estimated_time} seconds.")
                     time.sleep(estimated_time)
                 else:
                     if 'generated_text' in output:
