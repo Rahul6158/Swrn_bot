@@ -13,3 +13,4 @@ python-box
 streamlit
 langchain_community
 huggingface_hub
+pytube
