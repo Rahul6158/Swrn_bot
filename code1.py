@@ -52,8 +52,8 @@ if st.button("Transcribe"):
             st.write("Downloading audio...")
             audio_file = download_audio_from_youtube(video_url)
             
-            st.write("Transcribing audio...")
-            transcription_result = transcribe_audio(audio_file)
+            with st.spinner("Transcribing audio..."):
+                transcription_result = transcribe_audio(audio_file)
             
             if 'text' in transcription_result:
                 st.write("Transcription:")
