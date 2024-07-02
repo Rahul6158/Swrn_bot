@@ -1,61 +1,64 @@
-import requests
-from bs4 import BeautifulSoup
 import streamlit as st
-import pyttsx3
-from tempfile import NamedTemporaryFile
+from pytube import YouTube
+from pydub import AudioSegment
+import requests
+import os
 
-def fetch_blog_content(url):
-    # Fetch the HTML content of the blog post
-    response = requests.get(url)
-    html_content = response.text
-    return html_content
+# Set up Hugging Face API details
+API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v2"
+headers = {"Authorization": "Bearer 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"}
 
-def parse_html_content(html_content):
-    # Parse HTML and extract text content
-    soup = BeautifulSoup(html_content, 'html.parser')
-    
-    # Find all paragraphs and concatenate their text
-    paragraphs = soup.find_all('p')
-    blog_text = '\n'.join([para.get_text() for para in paragraphs])
-    
-    return blog_text
-
-def text_to_speech(text):
-    # Initialize the pyttsx3 engine
-    engine = pyttsx3.init()
-    
-    # Convert text to speech
-    engine.save_to_file(text, 'temp.mp3')  # Save speech to a temporary file
-    engine.runAndWait()
-
-# Streamlit app
-st.title("Blog Content Extractor & Text-to-Speech")
-
-blog_url = st.text_input("Enter Blog URL:")
-if st.button("Extract Content"):
-    if blog_url:
-        try:
-            html_content = fetch_blog_content(blog_url)
-            blog_text = parse_html_content(html_content)
-            st.text_area("Extracted Content", blog_text, height=400)
-
-            if st.button("Convert to Speech & Download"):
-                text_to_speech(blog_text)
-                st.success("Speech generated successfully!")
-
-                # Offer the file download
-                with open('temp.mp3', 'rb') as f:
-                    audio_bytes = f.read()
-                st.audio(audio_bytes, format='audio/mp3', start_time=0)
-                st.markdown(get_binary_file_downloader_html('temp.mp3', 'Download Audio'), unsafe_allow_html=True)
-
-        except Exception as e:
-            st.error(f"Error: {e}")
-
-def get_binary_file_downloader_html(bin_file, file_label='File'):
-    with open(bin_file, 'rb') as f:
+# Function to query the Hugging Face model
+def query_audio(audio_path):
+    with open(audio_path, "rb") as f:
         data = f.read()
-    bin_str = base64.b64encode(data).decode()
-    href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{bin_file}">{file_label}</a>'
-    return href
+    response = requests.post(API_URL, headers=headers, data=data)
+    return response.json()
 
+# Function to download audio from YouTube
+def download_youtube_audio(url):
+    yt = YouTube(url)
+    stream = yt.streams.filter(only_audio=True).first()
+    stream.download(filename="audio.mp4")
+    audio = AudioSegment.from_file("audio.mp4")
+    audio.export("audio.wav", format="wav")
+    return "audio.wav"
+
+# Streamlit app configuration
+st.set_page_config(page_title="YouTube Audio Transcription", page_icon='🎧', layout='centered')
+
+st.header("YouTube Audio Transcription 🎧")
+
+# Input field for YouTube URL
+youtube_url = st.text_input("Enter YouTube video URL")
+
+# Submit button
+if st.button("Transcribe"):
+    if youtube_url:
+        with st.spinner("Downloading audio and transcribing, please wait..."):
+            # Download and convert audio
+            audio_path = download_youtube_audio(youtube_url)
+            
+            # Show audio file
+            audio_file = open(audio_path, 'rb')
+            audio_bytes = audio_file.read()
+            st.audio(audio_bytes, format='audio/wav')
+
+            # Query the Hugging Face model
+            transcription = query_audio(audio_path)
+            
+            if 'text' in transcription:
+                transcription_text = transcription['text']
+                st.write("Transcription:")
+                st.write(transcription_text)
+                
+                # Make transcription available for download
+                st.download_button(label="Download Transcription", 
+                                   data=transcription_text, 
+                                   file_name="transcription.txt", 
+                                   mime="text/plain")
+            else:
+                st.write("Error in transcription:")
+                st.write(transcription)
+    else:
+        st.write("Please enter a valid YouTube URL")
