@@ -16,3 +16,4 @@ huggingface_hub
 pytube
 bs4
 pyttsx3
+pydub
