@@ -14,3 +14,4 @@ streamlit
 langchain_community
 huggingface_hub
 pytube
+bs4
