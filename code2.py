@@ -1,64 +1,42 @@
 import streamlit as st
-from pytube import YouTube
-from pydub import AudioSegment
 import requests
-import os
+import time
 
-# Set up Hugging Face API details
-API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v2"
-headers = {"Authorization": "Bearer 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"}
+# Define the API endpoint and headers
+API_URL = "https://api-inference.huggingface.co/models/bartowski/gemma-2-27b-it-GGUF"
+headers = {"Authorization": "Bearer hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
 
-# Function to query the Hugging Face model
-def query_audio(audio_path):
-    with open(audio_path, "rb") as f:
-        data = f.read()
-    response = requests.post(API_URL, headers=headers, data=data)
+# Function to query the model
+def query(payload):
+    response = requests.post(API_URL, headers=headers, json=payload)
     return response.json()
 
-# Function to download audio from YouTube
-def download_youtube_audio(url):
-    yt = YouTube(url)
-    stream = yt.streams.filter(only_audio=True).first()
-    stream.download(filename="audio.mp4")
-    audio = AudioSegment.from_file("audio.mp4")
-    audio.export("audio.wav", format="wav")
-    return "audio.wav"
-
 # Streamlit app configuration
-st.set_page_config(page_title="YouTube Audio Transcription", page_icon='🎧', layout='centered')
+st.set_page_config(page_title="Text Generation App", page_icon='🤖', layout='centered')
 
-st.header("YouTube Audio Transcription 🎧")
+st.header("Text Generation App 🤖")
 
-# Input field for YouTube URL
-youtube_url = st.text_input("Enter YouTube video URL")
+# Input field for user query
+input_text = st.text_input("Enter your prompt here")
 
 # Submit button
-if st.button("Transcribe"):
-    if youtube_url:
-        with st.spinner("Downloading audio and transcribing, please wait..."):
-            # Download and convert audio
-            audio_path = download_youtube_audio(youtube_url)
-            
-            # Show audio file
-            audio_file = open(audio_path, 'rb')
-            audio_bytes = audio_file.read()
-            st.audio(audio_bytes, format='audio/wav')
+if st.button("Generate Text"):
+    if input_text:
+        with st.spinner("Generating text, please wait..."):
+            while True:
+                output = query({"inputs": input_text})
 
-            # Query the Hugging Face model
-            transcription = query_audio(audio_path)
-            
-            if 'text' in transcription:
-                transcription_text = transcription['text']
-                st.write("Transcription:")
-                st.write(transcription_text)
-                
-                # Make transcription available for download
-                st.download_button(label="Download Transcription", 
-                                   data=transcription_text, 
-                                   file_name="transcription.txt", 
-                                   mime="text/plain")
-            else:
-                st.write("Error in transcription:")
-                st.write(transcription)
+                if 'error' in output and "loading" in output['error']:
+                    estimated_time = output.get("estimated_time", 20)
+                    time.sleep(estimated_time)
+                else:
+                    if 'generated_text' in output:
+                        # Display the generated text
+                        st.write("Generated Text:")
+                        st.write(output['generated_text'])
+                    else:
+                        st.write("Error in generating text:")
+                        st.write(output)
+                    break
     else:
-        st.write("Please enter a valid YouTube URL")
+        st.write("Please enter a valid prompt")
