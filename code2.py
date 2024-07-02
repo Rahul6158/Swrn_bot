@@ -1,8 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 import streamlit as st
-from gtts import gTTS
-import os
+import pyttsx3
+import tempfile
 
 def fetch_blog_content(url):
     response = requests.get(url)
@@ -16,8 +16,12 @@ def parse_html_content(html_content):
     return blog_text
 
 def text_to_speech(text, filename="output.mp3"):
-    tts = gTTS(text)
-    tts.save(filename)
+    engine = pyttsx3.init()
+    with tempfile.NamedTemporaryFile(delete=False) as temp_audio_file:
+        temp_audio_path = temp_audio_file.name + ".mp3"
+    engine.save_to_file(text, temp_audio_path)
+    engine.runAndWait()
+    return temp_audio_path
 
 # Streamlit app
 st.title("Blog Content Extractor")
@@ -39,13 +43,13 @@ if st.session_state.blog_text:
     st.text_area("Extracted Content", st.session_state.blog_text, height=400)
 
     # Convert text to speech
-    text_to_speech(st.session_state.blog_text)
+    audio_path = text_to_speech(st.session_state.blog_text)
     
     # Display audio player
-    st.audio("output.mp3", format='audio/mp3')
+    st.audio(audio_path, format='audio/mp3')
     
     # Provide download link
-    with open("output.mp3", "rb") as file:
+    with open(audio_path, "rb") as file:
         btn = st.download_button(
             label="Download Audio",
             data=file,
