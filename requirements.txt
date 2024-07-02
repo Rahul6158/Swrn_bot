@@ -15,3 +15,4 @@ langchain_community
 huggingface_hub
 pytube
 bs4
+pyttsx3
