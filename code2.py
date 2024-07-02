@@ -1,42 +1,32 @@
-import streamlit as st
 import requests
-import time
+from bs4 import BeautifulSoup
+import streamlit as st
 
-# Define the API endpoint and headers
-API_URL = "https://api-inference.huggingface.co/models/bartowski/gemma-2-27b-it-GGUF"
-headers = {"Authorization": "Bearer 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"}
+def fetch_blog_content(url):
+    # Fetch the HTML content of the blog post
+    response = requests.get(url)
+    html_content = response.text
+    return html_content
 
-# Function to query the model
-def query(payload):
-    response = requests.post(API_URL, headers=headers, json=payload)
-    return response.json()
+def parse_html_content(html_content):
+    # Parse HTML and extract text content
+    soup = BeautifulSoup(html_content, 'html.parser')
+    
+    # Find all paragraphs and concatenate their text
+    paragraphs = soup.find_all('p')
+    blog_text = '\n'.join([para.get_text() for para in paragraphs])
+    
+    return blog_text
 
-# Streamlit app configuration
-st.set_page_config(page_title="Text Generation App", page_icon='🤖', layout='centered')
+# Streamlit app
+st.title("Blog Content Extractor")
 
-st.header("Text Generation App 🤖")
-
-# Input field for user query
-input_text = st.text_input("Enter your prompt here")
-
-# Submit button
-if st.button("Generate Text"):
-    if input_text:
-        with st.spinner("Generating text, please wait..."):
-            while True:
-                output = query({"inputs": input_text})
-
-                if 'error' in output and "loading" in output['error']:
-                    estimated_time = output.get("estimated_time", 20)
-                    time.sleep(estimated_time)
-                else:
-                    if 'generated_text' in output:
-                        # Display the generated text
-                        st.write("Generated Text:")
-                        st.write(output['generated_text'])
-                    else:
-                        st.write("Error in generating text:")
-                        st.write(output)
-                    break
-    else:
-        st.write("Please enter a valid prompt")
+blog_url = st.text_input("Enter Blog URL:")
+if st.button("Extract Content"):
+    if blog_url:
+        try:
+            html_content = fetch_blog_content(blog_url)
+            blog_text = parse_html_content(html_content)
+            st.text_area("Extracted Content", blog_text, height=400)
+        except Exception as e:
+            st.error(f"Error extracting content: {e}")
